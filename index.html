@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Борщ Радио</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 48px;
+      margin-bottom: 40px;
+      letter-spacing: 2px;
+    }
+
+    #playButton {
+      width: 200px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    #playButton:hover {
+      transform: scale(1.05);
+    }
+
+    #nowPlaying {
+      margin-top: 30px;
+      font-size: 20px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Борщ Радио</h1>
+
+  <img id="playButton" src="sirin.jpg" alt="Play">
+
+  <div id="nowPlaying">Загрузка…</div>
+
+  <audio id="audioPlayer">
+    <source src="https://49.13.22.54/listen/borscht_radio/radio.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const audio = document.getElementById('audioPlayer');
+    const btn = document.getElementById('playButton');
+    let isPlaying = false;
+
+    btn.addEventListener('click', () => {
+      if (!isPlaying) {
+        audio.play();
+        isPlaying = true;
+      } else {
+        audio.pause();
+        isPlaying = false;
+      }
+    });
+
+    // Подгрузка Now Playing из AzuraCast API
+    async function fetchNowPlaying() {
+      try {
+        const res = await fetch("https://49.13.22.54/api/nowplaying/YOUR_STATION");
+        const data = await res.json();
+        document.getElementById('nowPlaying').innerText =
+          data.now_playing.song.artist + " — " + data.now_playing.song.title;
+      } catch (e) {
+        document.getElementById('nowPlaying').innerText = "—";
+      }
+    }
+
+    fetchNowPlaying();
+    setInterval(fetchNowPlaying, 15000); // обновление каждые 15 сек
+  </script>
+
+</body>
+</html>
