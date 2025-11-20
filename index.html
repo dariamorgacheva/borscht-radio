@@ -70,7 +70,7 @@
     // Подгрузка Now Playing из AzuraCast API
     async function fetchNowPlaying() {
       try {
-        const res = await fetch("https://49.13.22.54/api/nowplaying/YOUR_STATION");
+        const res = await fetch("https://49.13.22.54/api/nowplaying/borscht");
         const data = await res.json();
         document.getElementById('nowPlaying').innerText =
           data.now_playing.song.artist + " — " + data.now_playing.song.title;
