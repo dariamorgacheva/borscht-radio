@@ -1,87 +1,160 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Борщ Радио</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
+    :root { --bg: #000; --fg: #fff; --muted: rgba(255,255,255,0.75); }
+    html,body { height:100%; margin:0; }
     body {
-      margin: 0;
-      background: #000;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Arial, Helvetica, sans-serif;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:20px;
+      box-sizing:border-box;
     }
 
     h1 {
-      font-size: 48px;
-      margin-bottom: 40px;
+      font-size: clamp(28px, 6vw, 48px);
+      margin: 0 0 28px 0;
       letter-spacing: 2px;
     }
 
     #playButton {
-      width: 200px;
+      width: 220px;
+      max-width: 60vw;
       cursor: pointer;
-      transition: transform 0.2s ease;
+      transition: transform .18s ease, opacity .18s ease, filter .18s ease;
+      display:block;
+      user-select:none;
+      -webkit-user-drag: none;
     }
-    #playButton:hover {
-      transform: scale(1.05);
-    }
+    #playButton:hover { transform: scale(1.03); }
+
+    /* visual state */
+    .paused { opacity: 0.95; filter: none; }
+    .playing { opacity: 1; filter: drop-shadow(0 8px 22px rgba(255,0,0,0.08)); transform: scale(1.02); }
 
     #nowPlaying {
-      margin-top: 30px;
-      font-size: 20px;
-      opacity: 0.8;
+      margin-top: 22px;
+      font-size: 18px;
+      color: var(--muted);
+      min-height: 1.2em;
     }
+
+    #status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* small helper for errors */
+    .error { color: #ff6b6b; }
   </style>
 </head>
-
 <body>
 
   <h1>Борщ Радио</h1>
 
-  <img id="playButton" src="sirin.jpg" alt="Play">
+  <!-- картинка-кнопка -->
+  <img id="playButton" class="paused" src="sirin.jpg" alt="Play Борщ Радио" />
 
   <div id="nowPlaying">Загрузка…</div>
+  <div id="status">Нажми на птицу, чтобы запустить поток</div>
 
-  <audio id="audioPlayer">
-    <source src="https://49.13.22.54/listen/borscht_radio/radio.mp3" type="audio/mpeg">
-  </audio>
+  <!-- без <source> — будем устанавливать src из JS при клике -->
+  <audio id="audioPlayer" preload="none"></audio>
 
   <script>
     const audio = document.getElementById('audioPlayer');
     const btn = document.getElementById('playButton');
-    let isPlaying = false;
+    const now = document.getElementById('nowPlaying');
+    const status = document.getElementById('status');
 
-    btn.addEventListener('click', () => {
-      if (!isPlaying) {
-        audio.play();
-        isPlaying = true;
-      } else {
-        audio.pause();
-        isPlaying = false;
+    // Заменяй на корректный HTTPS-доменный stream, если у тебя есть:
+    // Например: "https://radio.borschtrecords.ca/station/128"
+    // IP-адрес с HTTPS часто ломает воспроизведение на страницах, обслуживаемых по HTTPS (сертификат не совпадает).
+    const STREAM_URL = "https://49.13.22.54/listen/borscht_radio/radio.mp3";
+
+    let isPlaying = false;
+    let streamSet = false;
+
+    btn.addEventListener('click', async () => {
+      try {
+        // если еще не установили stream — ставим src только при первом клике
+        if (!streamSet) {
+          audio.src = STREAM_URL;
+          audio.preload = "metadata";
+          streamSet = true;
+        }
+
+        if (!isPlaying) {
+          // try to play
+          await audio.play();
+          isPlaying = true;
+          btn.classList.remove('paused');
+          btn.classList.add('playing');
+          status.textContent = "Идёт воспроизведение";
+        } else {
+          audio.pause();
+          isPlaying = false;
+          btn.classList.remove('playing');
+          btn.classList.add('paused');
+          status.textContent = "Пауза";
+        }
+      } catch (err) {
+        // Ошибка может быть связана с CORS, SSL (сертификатом) или с блокировкой браузером
+        console.error("Ошибка при попытке воспроизвести поток:", err);
+        status.innerHTML = '<span class="error">Не удалось воспроизвести поток — см. консоль</span>';
       }
     });
 
-    // Подгрузка Now Playing из AzuraCast API
+    // Обработка ошибок в audio элементе
+    audio.addEventListener('error', (e) => {
+      console.error("Audio element error:", e, audio.error);
+      status.innerHTML = '<span class="error">Ошибка плеера — поток недоступен</span>';
+    });
+
+    audio.addEventListener('playing', () => {
+      isPlaying = true;
+      btn.classList.remove('paused');
+      btn.classList.add('playing');
+      status.textContent = "Идёт воспроизведение";
+    });
+    audio.addEventListener('pause', () => {
+      isPlaying = false;
+      btn.classList.remove('playing');
+      btn.classList.add('paused');
+      status.textContent = "Пауза";
+    });
+
+    /* Now Playing */
     async function fetchNowPlaying() {
       try {
+        // Обычно у AzuraCast API: https://yourdomain.tld/api/nowplaying/[station_short_name]
         const res = await fetch("https://49.13.22.54/api/nowplaying/borscht");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        document.getElementById('nowPlaying').innerText =
-          data.now_playing.song.artist + " — " + data.now_playing.song.title;
-      } catch (e) {
-        document.getElementById('nowPlaying').innerText = "—";
+
+        // защитная проверка полей
+        const artist = data?.now_playing?.song?.artist || "";
+        const title = data?.now_playing?.song?.title || "";
+        now.textContent = artist || title ? `${artist} — ${title}` : "—";
+      } catch (err) {
+        // Если API блокирует CORS, или не тот сертификат — здесь будет ошибка.
+        console.warn("NowPlaying fetch failed:", err);
+        now.textContent = "—";
       }
     }
 
     fetchNowPlaying();
-    setInterval(fetchNowPlaying, 15000); // обновление каждые 15 сек
+    setInterval(fetchNowPlaying, 15000);
   </script>
-
 </body>
 </html>
