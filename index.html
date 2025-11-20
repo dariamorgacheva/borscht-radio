@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Борщ Радио Borscht Radio</title>
+  <title>Borscht Radio</title>
 
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
@@ -136,26 +136,31 @@
     });
 
     /* Now Playing */
-    async function fetchNowPlaying() {
-      try {
-        // Обычно у AzuraCast API: https://yourdomain.tld/api/nowplaying/[station_short_name]
-        const res = await fetch("https://49.13.22.54/api/nowplaying/borscht");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+<div id="nowPlaying" style="color:white; margin-top:20px; font-size:22px;">
+  Loading...
+</div>
 
-        // защитная проверка полей
-        const artist = data?.now_playing?.song?.artist || "";
-        const title = data?.now_playing?.song?.title || "";
-        now.textContent = artist || title ? `${artist} — ${title}` : "—";
-      } catch (err) {
-        // Если API блокирует CORS, или не тот сертификат — здесь будет ошибка.
-        console.warn("NowPlaying fetch failed:", err);
-        now.textContent = "—";
-      }
-    }
+<script>
+async function updateNowPlaying() {
+  try {
+    const res = await fetch("https://49.13.22.54/api/nowplaying/borscht");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-    fetchNowPlaying();
-    setInterval(fetchNowPlaying, 15000);
-  </script>
+    const artist = data?.now_playing?.song?.artist || "—";
+    const title  = data?.now_playing?.song?.title || "—";
+
+    document.getElementById("nowPlaying").innerText = artist + " — " + title;
+  } catch (err) {
+    console.error("NowPlaying fetch failed:", err);
+    document.getElementById("nowPlaying").innerText = "—";
+  }
+}
+
+// обновление каждые 15 секунд
+updateNowPlaying();
+setInterval(updateNowPlaying, 15000);
+</script>
+
 </body>
 </html>
