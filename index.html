@@ -1,166 +1,101 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Borscht Radio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Borscht Radio</title>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #fff;
+    font-family: 'MedievalSharp', cursive;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+  }
 
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { --bg: #000; --fg: #fff; --muted: rgba(255,255,255,0.75); }
-    html,body { height:100%; margin:0; }
-    body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: Arial, Helvetica, sans-serif;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:20px;
-      box-sizing:border-box;
-    }
+  h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+  }
 
-    h1 {
-      font-size: clamp(28px, 6vw, 48px);
-      margin: 0 0 28px 0;
-      letter-spacing: 2px;
-    }
+  #playButton {
+    width: 200px;
+    height: 200px;
+    background: url('sirin1.jpg') no-repeat center center;
+    background-size: cover;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
 
-    #playButton {
-      width: 220px;
-      max-width: 60vw;
-      cursor: pointer;
-      transition: transform .18s ease, opacity .18s ease, filter .18s ease;
-      display:block;
-      user-select:none;
-      -webkit-user-drag: none;
-    }
-    #playButton:hover { transform: scale(1.03); }
+  #trackInfo {
+    font-size: 1.2em;
+    margin-top: 10px;
+  }
 
-    /* visual state */
-    .paused { opacity: 0.95; filter: none; }
-    .playing { opacity: 1; filter: drop-shadow(0 8px 22px rgba(255,0,0,0.08)); transform: scale(1.02); }
-
-    #nowPlaying {
-      margin-top: 22px;
-      font-size: 18px;
-      color: var(--muted);
-      min-height: 1.2em;
-    }
-
-    #status {
-      margin-top: 8px;
-      font-size: 13px;
-      color: rgba(255,255,255,0.5);
-    }
-
-    /* small helper for errors */
-    .error { color: #ff6b6b; }
-  </style>
+  @media (max-width: 600px) {
+    h1 { font-size: 2em; }
+    #playButton { width: 150px; height: 150px; }
+  }
+</style>
 </head>
 <body>
 
-  <h1>Борщ Радио</h1>
+<h1>Borscht Radio</h1>
+<button id="playButton"></button>
+<div id="trackInfo">Loading...</div>
 
-  <!-- картинка-кнопка -->
-  <img id="playButton" class="paused" src="sirin.jpg" alt="Play Борщ Радио" />
-
-  <div id="nowPlaying">Загрузка…</div>
-  <div id="status">Нажми на птицу, чтобы запустить поток</div>
-
-  <!-- без <source> — будем устанавливать src из JS при клике -->
-  <audio id="audioPlayer" preload="none"></audio>
-
-  <script>
-    const audio = document.getElementById('audioPlayer');
-    const btn = document.getElementById('playButton');
-    const now = document.getElementById('nowPlaying');
-    const status = document.getElementById('status');
-
-    // Заменяй на корректный HTTPS-доменный stream, если у тебя есть:
-    // Например: "https://radio.borschtrecords.ca/station/128"
-    // IP-адрес с HTTPS часто ломает воспроизведение на страницах, обслуживаемых по HTTPS (сертификат не совпадает).
-    const STREAM_URL = "https://49.13.22.54/listen/borscht_radio/radio.mp3";
-
-    let isPlaying = false;
-    let streamSet = false;
-
-    btn.addEventListener('click', async () => {
-      try {
-        // если еще не установили stream — ставим src только при первом клике
-        if (!streamSet) {
-          audio.src = STREAM_URL;
-          audio.preload = "metadata";
-          streamSet = true;
-        }
-
-        if (!isPlaying) {
-          // try to play
-          await audio.play();
-          isPlaying = true;
-          btn.classList.remove('paused');
-          btn.classList.add('playing');
-          status.textContent = "Идёт воспроизведение";
-        } else {
-          audio.pause();
-          isPlaying = false;
-          btn.classList.remove('playing');
-          btn.classList.add('paused');
-          status.textContent = "Пауза";
-        }
-      } catch (err) {
-        // Ошибка может быть связана с CORS, SSL (сертификатом) или с блокировкой браузером
-        console.error("Ошибка при попытке воспроизвести поток:", err);
-        status.innerHTML = '<span class="error">Не удалось воспроизвести поток — см. консоль</span>';
-      }
-    });
-
-    // Обработка ошибок в audio элементе
-    audio.addEventListener('error', (e) => {
-      console.error("Audio element error:", e, audio.error);
-      status.innerHTML = '<span class="error">Ошибка плеера — поток недоступен</span>';
-    });
-
-    audio.addEventListener('playing', () => {
-      isPlaying = true;
-      btn.classList.remove('paused');
-      btn.classList.add('playing');
-      status.textContent = "Идёт воспроизведение";
-    });
-    audio.addEventListener('pause', () => {
-      isPlaying = false;
-      btn.classList.remove('playing');
-      btn.classList.add('paused');
-      status.textContent = "Пауза";
-    });
-
-    /* Now Playing */
-<div id="nowPlaying" style="color:white; margin-top:20px; font-size:22px;">
-  Loading...
-</div>
+<audio id="audio" preload="none"></audio>
 
 <script>
-async function updateNowPlaying() {
+const audio = document.getElementById('audio');
+const playButton = document.getElementById('playButton');
+const trackInfo = document.getElementById('trackInfo');
+const streamUrl = 'https://borscht.live/listen/borscht_radio/radio.mp3';
+const nowPlayingUrl = 'https://borscht.live/api/nowplaying?station=borscht_radio';
+
+// Включение/выключение радио
+playButton.addEventListener('click', () => {
+  if (audio.paused) {
+    audio.src = streamUrl;
+    audio.play();
+    playButton.style.opacity = '0.7';
+  } else {
+    audio.pause();
+    playButton.style.opacity = '1';
+  }
+});
+
+// Подгрузка текущего трека
+async function updateTrackInfo() {
   try {
-    const res = await fetch("https://49.13.22.54/api/nowplaying/borscht");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const response = await fetch(nowPlayingUrl);
+    const data = await response.json();
 
-    const artist = data?.now_playing?.song?.artist || "—";
-    const title  = data?.now_playing?.song?.title || "—";
-
-    document.getElementById("nowPlaying").innerText = artist + " — " + title;
-  } catch (err) {
-    console.error("NowPlaying fetch failed:", err);
-    document.getElementById("nowPlaying").innerText = "—";
+    const song = data[0]?.now_playing?.song;
+    if (song) {
+      trackInfo.textContent = `${song.artist} — ${song.title}`;
+    } else {
+      trackInfo.textContent = 'No song currently playing';
+    }
+  } catch (error) {
+    trackInfo.textContent = 'Unable to load track info';
+    console.error(error);
   }
 }
 
-// обновление каждые 15 секунд
-updateNowPlaying();
-setInterval(updateNowPlaying, 15000);
+// Обновление каждые 10 секунд
+setInterval(updateTrackInfo, 10000);
+updateTrackInfo();
 </script>
 
 </body>
 </html>
+
