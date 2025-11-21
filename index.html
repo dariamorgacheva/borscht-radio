@@ -28,11 +28,33 @@
   #playButton {
     width: 200px;
     height: 200px;
-    background: url('sirin1.jpg') no-repeat center center;
-    background-size: contain;
-    border: none;
-    cursor: pointer;
     margin-bottom: 20px;
+  }
+
+  #playButton img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* сохраняем пропорции */
+    cursor: pointer;
+  }
+
+  #simplePlay {
+    width: 60px;
+    height: 60px;
+    background: none;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  #simplePlay svg {
+    width: 30px;
+    height: 30px;
+    fill: #fff;
   }
 
   #trackInfo {
@@ -43,42 +65,64 @@
   @media (max-width: 600px) {
     h1 { font-size: 2em; }
     #playButton { width: 150px; height: 150px; }
+    #simplePlay { width: 50px; height: 50px; }
+    #simplePlay svg { width: 24px; height: 24px; }
   }
 </style>
 </head>
 <body>
 
 <h1>Borscht Radio</h1>
-<button id="playButton"></button>
+
+<!-- Кнопка с изображением Sirin -->
+<div id="playButton">
+  <img src="sirin1.jpg" alt="Play Borscht Radio">
+</div>
+
+<!-- Простая кнопка Play/Pause -->
+<button id="simplePlay">
+  <svg viewBox="0 0 64 64" id="playIcon">
+    <polygon points="16,12 16,52 48,32"></polygon>
+  </svg>
+</button>
+
 <div id="trackInfo">Loading...</div>
 
 <audio id="audio" preload="none"></audio>
 
 <script>
 const audio = document.getElementById('audio');
-const playButton = document.getElementById('playButton');
+const sirinBtn = document.querySelector('#playButton img');
+const simpleBtn = document.getElementById('simplePlay');
+const playIcon = document.getElementById('playIcon');
 const trackInfo = document.getElementById('trackInfo');
+
 const streamUrl = 'https://borscht.live/listen/borscht_radio/radio.mp3';
 const nowPlayingUrl = 'https://borscht.live/api/nowplaying?station=borscht_radio';
 
-// Включение/выключение радио
-playButton.addEventListener('click', () => {
+// Функция Play/Pause
+function togglePlay() {
   if (audio.paused) {
     audio.src = streamUrl;
     audio.play();
-    playButton.style.opacity = '0.7';
+    // меняем иконку на || pause
+    playIcon.innerHTML = '<rect x="16" y="12" width="10" height="40"></rect><rect x="38" y="12" width="10" height="40"></rect>';
   } else {
     audio.pause();
-    playButton.style.opacity = '1';
+    // возвращаем иконку Play
+    playIcon.innerHTML = '<polygon points="16,12 16,52 48,32"></polygon>';
   }
-});
+}
+
+// Подключаем кнопки
+sirinBtn.addEventListener('click', togglePlay);
+simpleBtn.addEventListener('click', togglePlay);
 
 // Подгрузка текущего трека
 async function updateTrackInfo() {
   try {
     const response = await fetch(nowPlayingUrl);
     const data = await response.json();
-
     const song = data[0]?.now_playing?.song;
     if (song) {
       trackInfo.textContent = `${song.artist} — ${song.title}`;
@@ -98,4 +142,3 @@ updateTrackInfo();
 
 </body>
 </html>
-
